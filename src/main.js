@@ -481,53 +481,32 @@ btnTransfer.addEventListener('click', function(e) {
 });
 
 // Event listener para el botón de cerrar cuenta
-btnClose.addEventListener('click', function(e) {
+btnClose.addEventListener('click', function (e) {
   e.preventDefault();
-  resetLogoutTimer();
-  
-  const username = inputCloseUsername.value;
-  const pin = Number(inputClosePin.value);
-  
-  // Validar que los campos no estén vacíos
-  if (!username || !pin) {
-    alert('Por favor, complete todos los campos');
-    return;
-  }
 
-  // Verificar que la cuenta exista y las credenciales sean correctas
-  if (username !== currentAccount.username || pin !== currentAccount.pin) {
-    alert('Error: Credenciales incorrectas');
-    return;
-  }
+  if (
+    inputCloseUsername.value === currentAccount.username &&
+    Number(inputClosePin.value) === currentAccount.pin
+  ) {
+    const index = accounts.findIndex(
+      acc => acc.username === currentAccount.username
+    );
+    console.log(index);
+    
+    // Eliminar cuenta
+    accounts.splice(index, 1);
 
-  // Confirmar el cierre de cuenta
-  if (!confirm('¿Está seguro de que desea cerrar su cuenta? Esta acción no se puede deshacer.')) {
-    return;
-  }
-
-  // Eliminar la cuenta del array de cuentas
-  const accountIndex = accounts.findIndex(acc => acc.username === username);
-  if (accountIndex !== -1) {
-    accounts.splice(accountIndex, 1);
-    
-    // Limpiar los campos de login
-    inputLoginUsername.value = '';
-    inputLoginPin.value = '';
-    
-    // Limpiar el formulario de cierre
-    inputCloseUsername.value = '';
-    inputClosePin.value = '';
-    
-    // Resetear el mensaje de bienvenida
-    labelWelcome.textContent = 'Log in to get started';
-    
-    // Ocultar la interfaz
+    // Ocultar UI
     containerApp.style.opacity = 0;
     
-    alert('Cuenta cerrada con éxito. Ha sido desconectado.');
+    // Mostrar mensaje de confirmación
+    labelWelcome.textContent = 'Cuenta cerrada correctamente. ¡Gracias por confiar en nosotros!';
   } else {
-    alert('Error: No se pudo cerrar la cuenta.');
+    labelWelcome.textContent = 'Credenciales incorrectas. No se pudo cerrar la cuenta.';
   }
+
+  // Limpiar campos
+  inputCloseUsername.value = inputClosePin.value = '';
 });
 
 // Event listener para el botón de ordenamiento
