@@ -162,42 +162,52 @@ const account4 = {
   pin: 4444,
 };
 
-// Función para generar una cuenta con datos aleatorios
+// Función para generar una cuenta aleatoria
 const generateRandomAccount = function() {
-  // Asegurar que el nombre y apellido sean de una sola palabra
+  // Generar nombre y apellido aleatorios (asegurando que sean de una sola palabra)
   const firstName = faker.person.firstName().split(' ')[0];
   const lastName = faker.person.lastName().split(' ')[0];
   const owner = `${firstName} ${lastName}`;
   
-  // Generar entre 5 y 10 movimientos aleatorios
-  const numMovements = faker.number.int({ min: 5, max: 10 });
+  // Generar PIN aleatorio de 4 dígitos
+  const pin = Math.floor(1000 + Math.random() * 9000);
+  
+  // Generar tasa de interés aleatoria entre 0.5 y 2.5
+  const interestRate = Number((Math.random() * 2 + 0.5).toFixed(1));
+  
+  // Generar entre 2 y 5 movimientos aleatorios
+  const numMovements = Math.floor(Math.random() * 4) + 2;
   const movements = [];
   
-  // Fecha base para los movimientos (últimos 30 días)
-  const today = new Date();
+  // Fecha actual
+  const now = new Date();
   
+  // Generar movimientos aleatorios
   for (let i = 0; i < numMovements; i++) {
-    // Generar una fecha aleatoria en los últimos 30 días
-    const movementDate = new Date(today);
-    movementDate.setDate(today.getDate() - faker.number.int({ min: 0, max: 30 }));
+    // Generar importe aleatorio entre -1000 y 3000
+    const amount = Math.floor(Math.random() * 4000) - 1000;
     
-    // Generar un monto aleatorio entre -1000 y 5000
-    const amount = faker.number.int({ min: -1000, max: 5000 });
+    // Generar fecha aleatoria en los últimos 30 días
+    const daysAgo = Math.floor(Math.random() * 30);
+    const movementDate = new Date(now);
+    movementDate.setDate(now.getDate() - daysAgo);
     
-    movements.push({ amount, date: movementDate });
+    movements.push({
+      amount: amount,
+      date: movementDate
+    });
   }
   
-  // Generar un PIN aleatorio de 4 dígitos
-  const pin = faker.number.int({ min: 1000, max: 9999 });
-  
-  // Generar una tasa de interés aleatoria entre 0.5 y 2.0
-  const interestRate = parseFloat(faker.number.float({ min: 0.5, max: 2.0, precision: 0.1 }).toFixed(1));
+  // Ordenar movimientos por fecha (del más antiguo al más reciente)
+  movements.sort((a, b) => a.date - b.date);
   
   return {
-    owner,
-    movements,
-    interestRate,
-    pin,
+    owner: owner,
+    pin: pin,
+    interestRate: interestRate,
+    movements: movements,
+    locale: 'es-ES',
+    currency: 'EUR'
   };
 };
 
@@ -397,137 +407,186 @@ const hasValidDeposit = function(movements, loanAmount) {
 };
 
 // Event listener para el botón de préstamo
-btnLoan.addEventListener('click', function(e) {
+btnLoan.addEventListener('click', function (e) {
   e.preventDefault();
-  resetLogoutTimer();
   
-  const loanAmount = Number(inputLoanAmount.value);
+  const amount = Math.floor(inputLoanAmount.value);
   
-  // Validar que el monto sea positivo
-  if (loanAmount <= 0) {
-    alert('Por favor, ingrese un monto válido mayor a 0');
-    return;
-  }
-
-  // Calcular el balance actual
+  // Limpiar campo de entrada
+  inputLoanAmount.value = '';
+  
+  // Validar que el monto sea positivo y no exceda el 200% del balance actual
   const currentBalance = currentAccount.movements.reduce((total, movement) => total + movement.amount, 0);
+  const maxLoanAmount = currentBalance * 2;
   
-  // Verificar que el préstamo no supere el 200% del balance
-  if (loanAmount > currentBalance * 2) {
-    alert(`El préstamo no puede superar el 200% de su balance actual (${(currentBalance * 2).toFixed(2)}€)`);
-    return;
-  }
-
-  // Verificar si hay un depósito válido
-  if (hasValidDeposit(currentAccount.movements, loanAmount)) {
-    // Agregar el préstamo a los movimientos
-    currentAccount.movements.push({ amount: loanAmount, date: new Date() });
+  if (amount > 0 && amount <= maxLoanAmount) {
+    // Simular un retraso en la aprobación del préstamo (3 segundos)
+    const mensajeEspera = document.createElement('div');
+    mensajeEspera.classList.add('loan-processing');
+    mensajeEspera.textContent = 'Procesando solicitud de préstamo...';
+    mensajeEspera.style.color = 'blue';
+    mensajeEspera.style.marginTop = '10px';
+    mensajeEspera.style.fontWeight = 'bold';
     
-    // Actualizar la interfaz
-    updateUI(currentAccount);
+    // Añadir mensaje debajo del formulario de préstamo
+    document.querySelector('.operation--loan').appendChild(mensajeEspera);
     
-    // Limpiar el formulario
-    inputLoanAmount.value = '';
-    
-    alert(`¡Préstamo de ${loanAmount.toFixed(2)}€ aprobado!`);
+    setTimeout(() => {
+      // Aprobar el préstamo
+      currentAccount.movements.push({
+        amount: amount,
+        date: new Date()
+      });
+      
+      // Eliminar mensaje de espera
+      mensajeEspera.remove();
+      
+      // Mostrar mensaje de éxito
+      const mensajeExito = document.createElement('div');
+      mensajeExito.classList.add('loan-success');
+      mensajeExito.textContent = `Préstamo de ${amount}€ aprobado y depositado en su cuenta`;
+      mensajeExito.style.color = 'green';
+      mensajeExito.style.marginTop = '10px';
+      mensajeExito.style.fontWeight = 'bold';
+      
+      // Añadir mensaje debajo del formulario de préstamo
+      document.querySelector('.operation--loan').appendChild(mensajeExito);
+      
+      // Eliminar el mensaje después de 3 segundos
+      setTimeout(() => {
+        mensajeExito.remove();
+      }, 3000);
+      
+      // Actualizar UI
+      updateUI(currentAccount);
+    }, 3000);
   } else {
-    alert('Lo sentimos, necesita tener al menos un depósito que supere el 10% del monto solicitado');
+    // Mostrar mensaje de error
+    const mensajeError = document.createElement('div');
+    mensajeError.classList.add('loan-error');
+    mensajeError.style.color = 'red';
+    mensajeError.style.marginTop = '10px';
+    mensajeError.style.fontWeight = 'bold';
+    
+    if (amount <= 0) {
+      mensajeError.textContent = 'La cantidad debe ser mayor que 0';
+    } else {
+      mensajeError.textContent = `El préstamo no puede exceder el 200% de su balance actual (${maxLoanAmount}€)`;
+    }
+    
+    // Añadir mensaje debajo del formulario de préstamo
+    document.querySelector('.operation--loan').appendChild(mensajeError);
+    
+    // Eliminar el mensaje después de 3 segundos
+    setTimeout(() => {
+      mensajeError.remove();
+    }, 3000);
   }
 });
 
 // Event listener para el botón de transferencia
 btnTransfer.addEventListener('click', function(e) {
   e.preventDefault();
-  resetLogoutTimer();
   
   const amount = Number(inputTransferAmount.value);
-  const recipientUsername = inputTransferTo.value;
-  
-  // Validar que el monto sea positivo
-  if (amount <= 0) {
-    alert('Por favor, ingrese un monto válido mayor a 0');
-    return;
-  }
-
-  // Obtener la cuenta del destinatario
-  const recipientAccount = accounts.find(acc => 
-    acc.username === recipientUsername
+  const receiverAcc = accounts.find(
+    acc => acc.username === inputTransferTo.value
   );
-
-  if (!recipientAccount) {
-    alert('Error: No se encontró la cuenta del destinatario');
-    return;
+  
+  // Limpiar campos de entrada
+  inputTransferAmount.value = inputTransferTo.value = '';
+  
+  // Validaciones
+  if (
+    amount > 0 &&
+    receiverAcc &&
+    currentAccount.movements.reduce((total, movement) => total + movement.amount, 0) >= amount &&
+    receiverAcc.username !== currentAccount.username
+  ) {
+    // Realizar la transferencia
+    currentAccount.movements.push({
+      amount: -amount,
+      date: new Date()
+    });
+    
+    receiverAcc.movements.push({
+      amount: amount,
+      date: new Date()
+    });
+    
+    // Mostrar mensaje de éxito
+    const mensaje = document.createElement('div');
+    mensaje.classList.add('transfer-success');
+    mensaje.textContent = `Transferencia de ${amount}€ realizada con éxito a ${receiverAcc.owner}`;
+    mensaje.style.color = 'green';
+    mensaje.style.marginTop = '10px';
+    mensaje.style.fontWeight = 'bold';
+    
+    // Añadir mensaje debajo del formulario de transferencia
+    document.querySelector('.operation--transfer').appendChild(mensaje);
+    
+    // Eliminar el mensaje después de 3 segundos
+    setTimeout(() => {
+      mensaje.remove();
+    }, 3000);
+    
+    // Actualizar UI
+    updateUI(currentAccount);
+  } else {
+    // Mostrar mensaje de error
+    const mensaje = document.createElement('div');
+    mensaje.classList.add('transfer-error');
+    mensaje.style.color = 'red';
+    mensaje.style.marginTop = '10px';
+    mensaje.style.fontWeight = 'bold';
+    
+    if (amount <= 0) {
+      mensaje.textContent = 'La cantidad debe ser mayor que 0';
+    } else if (!receiverAcc) {
+      mensaje.textContent = 'No se encontró la cuenta de destino';
+    } else if (currentAccount.movements.reduce((total, movement) => total + movement.amount, 0) < amount) {
+      mensaje.textContent = 'No tienes suficiente saldo para esta transferencia';
+    } else if (receiverAcc.username === currentAccount.username) {
+      mensaje.textContent = 'No puedes transferir dinero a tu propia cuenta';
+    }
+    
+    // Añadir mensaje debajo del formulario de transferencia
+    document.querySelector('.operation--transfer').appendChild(mensaje);
+    
+    // Eliminar el mensaje después de 3 segundos
+    setTimeout(() => {
+      mensaje.remove();
+    }, 3000);
   }
-
-  // Verificar que haya suficiente saldo
-  const currentBalance = currentAccount.movements.reduce((total, movement) => total + movement.amount, 0);
-  if (currentBalance < amount) {
-    alert('Lo sentimos, no tiene suficiente saldo para realizar esta transferencia');
-    return;
-  }
-
-  // Realizar la transferencia
-  currentAccount.movements.push({ amount: -amount, date: new Date() });
-  recipientAccount.movements.push({ amount: amount, date: new Date() });
-  
-  // Limpiar el formulario
-  inputTransferTo.value = '';
-  inputTransferAmount.value = '';
-  
-  // Actualizar la interfaz
-  updateUI(currentAccount);
-  
-  alert('Transferencia realizada con éxito');
 });
 
 // Event listener para el botón de cerrar cuenta
-btnClose.addEventListener('click', function(e) {
+btnClose.addEventListener('click', function (e) {
   e.preventDefault();
-  resetLogoutTimer();
-  
-  const username = inputCloseUsername.value;
-  const pin = Number(inputClosePin.value);
-  
-  // Validar que los campos no estén vacíos
-  if (!username || !pin) {
-    alert('Por favor, complete todos los campos');
-    return;
-  }
 
-  // Verificar que la cuenta exista y las credenciales sean correctas
-  if (username !== currentAccount.username || pin !== currentAccount.pin) {
-    alert('Error: Credenciales incorrectas');
-    return;
-  }
+  if (
+    inputCloseUsername.value === currentAccount.username &&
+    Number(inputClosePin.value) === currentAccount.pin
+  ) {
+    const index = accounts.findIndex(
+      acc => acc.username === currentAccount.username
+    );
+    console.log(index);
+    
+    // Eliminar cuenta
+    accounts.splice(index, 1);
 
-  // Confirmar el cierre de cuenta
-  if (!confirm('¿Está seguro de que desea cerrar su cuenta? Esta acción no se puede deshacer.')) {
-    return;
-  }
-
-  // Eliminar la cuenta del array de cuentas
-  const accountIndex = accounts.findIndex(acc => acc.username === username);
-  if (accountIndex !== -1) {
-    accounts.splice(accountIndex, 1);
-    
-    // Limpiar los campos de login
-    inputLoginUsername.value = '';
-    inputLoginPin.value = '';
-    
-    // Limpiar el formulario de cierre
-    inputCloseUsername.value = '';
-    inputClosePin.value = '';
-    
-    // Resetear el mensaje de bienvenida
-    labelWelcome.textContent = 'Log in to get started';
-    
-    // Ocultar la interfaz
+    // Ocultar UI
     containerApp.style.opacity = 0;
     
-    alert('Cuenta cerrada con éxito. Ha sido desconectado.');
+    // Mostrar mensaje de confirmación
+    labelWelcome.textContent = 'Cuenta cerrada correctamente. ¡Gracias por confiar en nosotros!';
   } else {
-    alert('Error: No se pudo cerrar la cuenta.');
+    labelWelcome.textContent = 'Credenciales incorrectas. No se pudo cerrar la cuenta.';
   }
+
+  // Limpiar campos
+  inputCloseUsername.value = inputClosePin.value = '';
 });
 
 // Event listener para el botón de ordenamiento
