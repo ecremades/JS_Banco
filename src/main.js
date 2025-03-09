@@ -451,43 +451,75 @@ btnTransfer.addEventListener('click', function(e) {
   resetLogoutTimer();
   
   const amount = Number(inputTransferAmount.value);
-  const recipientUsername = inputTransferTo.value;
-  
-  // Validar que el monto sea positivo
-  if (amount <= 0) {
-    alert('Por favor, ingrese un monto válido mayor a 0');
-    return;
-  }
-
-  // Obtener la cuenta del destinatario
-  const recipientAccount = accounts.find(acc => 
-    acc.username === recipientUsername
+  const receiverAcc = accounts.find(
+    acc => acc.username === inputTransferTo.value
   );
-
-  if (!recipientAccount) {
-    alert('Error: No se encontró la cuenta del destinatario');
-    return;
+  
+  // Limpiar campos de entrada
+  inputTransferAmount.value = inputTransferTo.value = '';
+  
+  // Validaciones
+  if (
+    amount > 0 &&
+    receiverAcc &&
+    currentAccount.movements.reduce((total, movement) => total + movement.amount, 0) >= amount &&
+    receiverAcc.username !== currentAccount.username
+  ) {
+    // Realizar la transferencia
+    currentAccount.movements.push({
+      amount: -amount,
+      date: new Date()
+    });
+    
+    receiverAcc.movements.push({
+      amount: amount,
+      date: new Date()
+    });
+    
+    // Mostrar mensaje de éxito
+    const mensaje = document.createElement('div');
+    mensaje.classList.add('transfer-success');
+    mensaje.textContent = `Transferencia de ${amount}€ realizada con éxito a ${receiverAcc.owner}`;
+    mensaje.style.color = 'green';
+    mensaje.style.marginTop = '10px';
+    mensaje.style.fontWeight = 'bold';
+    
+    // Añadir mensaje debajo del formulario de transferencia
+    document.querySelector('.operation--transfer').appendChild(mensaje);
+    
+    // Eliminar el mensaje después de 3 segundos
+    setTimeout(() => {
+      mensaje.remove();
+    }, 3000);
+    
+    // Actualizar UI
+    updateUI(currentAccount);
+  } else {
+    // Mostrar mensaje de error
+    const mensaje = document.createElement('div');
+    mensaje.classList.add('transfer-error');
+    mensaje.style.color = 'red';
+    mensaje.style.marginTop = '10px';
+    mensaje.style.fontWeight = 'bold';
+    
+    if (amount <= 0) {
+      mensaje.textContent = 'La cantidad debe ser mayor que 0';
+    } else if (!receiverAcc) {
+      mensaje.textContent = 'No se encontró la cuenta de destino';
+    } else if (currentAccount.movements.reduce((total, movement) => total + movement.amount, 0) < amount) {
+      mensaje.textContent = 'No tienes suficiente saldo para esta transferencia';
+    } else if (receiverAcc.username === currentAccount.username) {
+      mensaje.textContent = 'No puedes transferir dinero a tu propia cuenta';
+    }
+    
+    // Añadir mensaje debajo del formulario de transferencia
+    document.querySelector('.operation--transfer').appendChild(mensaje);
+    
+    // Eliminar el mensaje después de 3 segundos
+    setTimeout(() => {
+      mensaje.remove();
+    }, 3000);
   }
-
-  // Verificar que haya suficiente saldo
-  const currentBalance = currentAccount.movements.reduce((total, movement) => total + movement.amount, 0);
-  if (currentBalance < amount) {
-    alert('Lo sentimos, no tiene suficiente saldo para realizar esta transferencia');
-    return;
-  }
-
-  // Realizar la transferencia
-  currentAccount.movements.push({ amount: -amount, date: new Date() });
-  recipientAccount.movements.push({ amount: amount, date: new Date() });
-  
-  // Limpiar el formulario
-  inputTransferTo.value = '';
-  inputTransferAmount.value = '';
-  
-  // Actualizar la interfaz
-  updateUI(currentAccount);
-  
-  alert('Transferencia realizada con éxito');
 });
 
 // Event listener para el botón de cerrar cuenta
