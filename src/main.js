@@ -162,42 +162,52 @@ const account4 = {
   pin: 4444,
 };
 
-// Función para generar una cuenta con datos aleatorios
+// Función para generar una cuenta aleatoria
 const generateRandomAccount = function() {
-  // Asegurar que el nombre y apellido sean de una sola palabra
+  // Generar nombre y apellido aleatorios (asegurando que sean de una sola palabra)
   const firstName = faker.person.firstName().split(' ')[0];
   const lastName = faker.person.lastName().split(' ')[0];
   const owner = `${firstName} ${lastName}`;
   
-  // Generar entre 5 y 10 movimientos aleatorios
-  const numMovements = faker.number.int({ min: 5, max: 10 });
+  // Generar PIN aleatorio de 4 dígitos
+  const pin = Math.floor(1000 + Math.random() * 9000);
+  
+  // Generar tasa de interés aleatoria entre 0.5 y 2.5
+  const interestRate = Number((Math.random() * 2 + 0.5).toFixed(1));
+  
+  // Generar entre 2 y 5 movimientos aleatorios
+  const numMovements = Math.floor(Math.random() * 4) + 2;
   const movements = [];
   
-  // Fecha base para los movimientos (últimos 30 días)
-  const today = new Date();
+  // Fecha actual
+  const now = new Date();
   
+  // Generar movimientos aleatorios
   for (let i = 0; i < numMovements; i++) {
-    // Generar una fecha aleatoria en los últimos 30 días
-    const movementDate = new Date(today);
-    movementDate.setDate(today.getDate() - faker.number.int({ min: 0, max: 30 }));
+    // Generar importe aleatorio entre -1000 y 3000
+    const amount = Math.floor(Math.random() * 4000) - 1000;
     
-    // Generar un monto aleatorio entre -1000 y 5000
-    const amount = faker.number.int({ min: -1000, max: 5000 });
+    // Generar fecha aleatoria en los últimos 30 días
+    const daysAgo = Math.floor(Math.random() * 30);
+    const movementDate = new Date(now);
+    movementDate.setDate(now.getDate() - daysAgo);
     
-    movements.push({ amount, date: movementDate });
+    movements.push({
+      amount: amount,
+      date: movementDate
+    });
   }
   
-  // Generar un PIN aleatorio de 4 dígitos
-  const pin = faker.number.int({ min: 1000, max: 9999 });
-  
-  // Generar una tasa de interés aleatoria entre 0.5 y 2.0
-  const interestRate = parseFloat(faker.number.float({ min: 0.5, max: 2.0, precision: 0.1 }).toFixed(1));
+  // Ordenar movimientos por fecha (del más antiguo al más reciente)
+  movements.sort((a, b) => a.date - b.date);
   
   return {
-    owner,
-    movements,
-    interestRate,
-    pin,
+    owner: owner,
+    pin: pin,
+    interestRate: interestRate,
+    movements: movements,
+    locale: 'es-ES',
+    currency: 'EUR'
   };
 };
 
