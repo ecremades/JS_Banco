@@ -407,48 +407,86 @@ const hasValidDeposit = function(movements, loanAmount) {
 };
 
 // Event listener para el botón de préstamo
-btnLoan.addEventListener('click', function(e) {
+btnLoan.addEventListener('click', function (e) {
   e.preventDefault();
-  resetLogoutTimer();
   
-  const loanAmount = Number(inputLoanAmount.value);
+  const amount = Math.floor(inputLoanAmount.value);
   
-  // Validar que el monto sea positivo
-  if (loanAmount <= 0) {
-    alert('Por favor, ingrese un monto válido mayor a 0');
-    return;
-  }
-
-  // Calcular el balance actual
+  // Limpiar campo de entrada
+  inputLoanAmount.value = '';
+  
+  // Validar que el monto sea positivo y no exceda el 200% del balance actual
   const currentBalance = currentAccount.movements.reduce((total, movement) => total + movement.amount, 0);
+  const maxLoanAmount = currentBalance * 2;
   
-  // Verificar que el préstamo no supere el 200% del balance
-  if (loanAmount > currentBalance * 2) {
-    alert(`El préstamo no puede superar el 200% de su balance actual (${(currentBalance * 2).toFixed(2)}€)`);
-    return;
-  }
-
-  // Verificar si hay un depósito válido
-  if (hasValidDeposit(currentAccount.movements, loanAmount)) {
-    // Agregar el préstamo a los movimientos
-    currentAccount.movements.push({ amount: loanAmount, date: new Date() });
+  if (amount > 0 && amount <= maxLoanAmount) {
+    // Simular un retraso en la aprobación del préstamo (3 segundos)
+    const mensajeEspera = document.createElement('div');
+    mensajeEspera.classList.add('loan-processing');
+    mensajeEspera.textContent = 'Procesando solicitud de préstamo...';
+    mensajeEspera.style.color = 'blue';
+    mensajeEspera.style.marginTop = '10px';
+    mensajeEspera.style.fontWeight = 'bold';
     
-    // Actualizar la interfaz
-    updateUI(currentAccount);
+    // Añadir mensaje debajo del formulario de préstamo
+    document.querySelector('.operation--loan').appendChild(mensajeEspera);
     
-    // Limpiar el formulario
-    inputLoanAmount.value = '';
-    
-    alert(`¡Préstamo de ${loanAmount.toFixed(2)}€ aprobado!`);
+    setTimeout(() => {
+      // Aprobar el préstamo
+      currentAccount.movements.push({
+        amount: amount,
+        date: new Date()
+      });
+      
+      // Eliminar mensaje de espera
+      mensajeEspera.remove();
+      
+      // Mostrar mensaje de éxito
+      const mensajeExito = document.createElement('div');
+      mensajeExito.classList.add('loan-success');
+      mensajeExito.textContent = `Préstamo de ${amount}€ aprobado y depositado en su cuenta`;
+      mensajeExito.style.color = 'green';
+      mensajeExito.style.marginTop = '10px';
+      mensajeExito.style.fontWeight = 'bold';
+      
+      // Añadir mensaje debajo del formulario de préstamo
+      document.querySelector('.operation--loan').appendChild(mensajeExito);
+      
+      // Eliminar el mensaje después de 3 segundos
+      setTimeout(() => {
+        mensajeExito.remove();
+      }, 3000);
+      
+      // Actualizar UI
+      updateUI(currentAccount);
+    }, 3000);
   } else {
-    alert('Lo sentimos, necesita tener al menos un depósito que supere el 10% del monto solicitado');
+    // Mostrar mensaje de error
+    const mensajeError = document.createElement('div');
+    mensajeError.classList.add('loan-error');
+    mensajeError.style.color = 'red';
+    mensajeError.style.marginTop = '10px';
+    mensajeError.style.fontWeight = 'bold';
+    
+    if (amount <= 0) {
+      mensajeError.textContent = 'La cantidad debe ser mayor que 0';
+    } else {
+      mensajeError.textContent = `El préstamo no puede exceder el 200% de su balance actual (${maxLoanAmount}€)`;
+    }
+    
+    // Añadir mensaje debajo del formulario de préstamo
+    document.querySelector('.operation--loan').appendChild(mensajeError);
+    
+    // Eliminar el mensaje después de 3 segundos
+    setTimeout(() => {
+      mensajeError.remove();
+    }, 3000);
   }
 });
 
 // Event listener para el botón de transferencia
 btnTransfer.addEventListener('click', function(e) {
   e.preventDefault();
-  resetLogoutTimer();
   
   const amount = Number(inputTransferAmount.value);
   const receiverAcc = accounts.find(
